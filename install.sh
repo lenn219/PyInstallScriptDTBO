@@ -8,5 +8,7 @@ set -x          # optioneel: debug (print elke command)
 # install is simply a copy but allows me to change attributes.
 install -m 755 95-uki-addons.install /etc/kernel/install.d/
 
+# maak de folder aan als het er nog niet is
+sudo mkdir -p /usr/lib/modules/uki.extra.d
 
-echo ./etc/kernel/install.conf | tee -a /etc/kernel/install.conf > /dev/null
+echo layout=uki | tee -a /etc/kernel/install.conf > /dev/null

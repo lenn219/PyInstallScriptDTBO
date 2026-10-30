@@ -3,63 +3,73 @@
 # Kopieert /etc/uki-addons/*.addon.efi naast elke UKI.
 import glob, os, shutil, sys
 
+print("95-uki-addons: SCRIPT STARTED", file=sys.stderr)
+print(f"95-uki-addons: VERBOSE={os.environ.get('KERNEL_INSTALL_VERBOSE')!r}", file=sys.stderr)
+print(f"95-uki-addons: argv={sys.argv}", file=sys.stderr)
+sys.stderr.flush()
+
 # https://uapi-group.org/specifications/specs/unified_kernel_image/
 # The location is definid in this spec.
 SRC = "/usr/lib/modules/uki.extra.d"
+import traceback
+try:
+    def log(msg: str):
+        if os.environ.get("KERNEL_INSTALL_VERBOSE", "0") not in ("", "0") \
+            or os.environ.get("UKI_ADDONS_VERBOSE"):
+            print(f"95-uki-addons: {msg}", file=sys.stderr)
 
-def log(msg: str):
-    if os.environ.get("KERNEL_INSTALL_VERBOSE", "0") not in ("", "0"):
-        print(f"95-uki-addons: {msg}", file=sys.stderr)
+    if len(sys.argv) < 3:
+        log("Not enough command line arguments (need: command, kernel version)")
+        sys.exit(0)
 
-if len(sys.argv) < 3:
-    log("Not enough command line arguments (need: command, kernel version)")
-    sys.exit(0)
+    cmd, kver = sys.argv[1], sys.argv[2]
+    log(f"called with command={cmd!r} kver={kver!r}")
 
-cmd, kver = sys.argv[1], sys.argv[2]
-log(f"called with command={cmd!r} kver={kver!r}")
+    if os.environ.get("KERNEL_INSTALL_LAYOUT") != "uki":
+        log(f"layout is {os.environ.get('KERNEL_INSTALL_LAYOUT')!r}, not 'uki' — skipping")
+        sys.exit(0)
 
-if os.environ.get("KERNEL_INSTALL_LAYOUT") != "uki":
-    log(f"layout is {os.environ.get('KERNEL_INSTALL_LAYOUT')!r}, not 'uki' — skipping")
-    sys.exit(0)
+    # https://www.man7.org/linux/man-pages/man8/kernel-install.8.html
+    # these enviroment veriables come from this doc.
+    boot  = os.environ.get("KERNEL_INSTALL_BOOT_ROOT")
+    token = os.environ.get("KERNEL_INSTALL_ENTRY_TOKEN")
+    if not boot or not token:
+        log(f"BOOT_ROOT={boot!r} ENTRY_TOKEN={token!r} — missing, skipping")
+        sys.exit(0)
 
-# https://www.man7.org/linux/man-pages/man8/kernel-install.8.html
-# these enviroment veriables come from this doc.
-boot  = os.environ.get("KERNEL_INSTALL_BOOT_ROOT")
-token = os.environ.get("KERNEL_INSTALL_ENTRY_TOKEN")
-if not boot or not token:
-    log(f"BOOT_ROOT={boot!r} ENTRY_TOKEN={token!r} — missing, skipping")
-    sys.exit(0)
+    # https://www.freedesktop.org/software/systemd/man/latest/kernel-install.html
+    # zie documentatie komt van deze vandaan.
+    # Nieuwere systemd zet ENTRY_NAME; anders "<token>-<kver>" (zonder boot-teller)
+    name = os.environ.get("KERNEL_INSTALL_ENTRY_NAME") or f"{token}-{kver}"
+    dest = os.path.join(boot, "EFI", "Linux", f"{name}.efi.extra.d")
+    log(f"target directory: {dest}")
 
-# https://www.freedesktop.org/software/systemd/man/latest/kernel-install.html
-# zie documentatie komt van deze vandaan.
-# Nieuwere systemd zet ENTRY_NAME; anders "<token>-<kver>" (zonder boot-teller)
-name = os.environ.get("KERNEL_INSTALL_ENTRY_NAME") or f"{token}-{kver}"
-dest = os.path.join(boot, "EFI", "Linux", f"{name}.efi.extra.d")
-log(f"target directory: {dest}")
-
-# We voegen in dit onderdeel de module toe
-if cmd == "add":
-    addons = sorted(glob.glob(os.path.join(SRC, "*.addon.efi")))
-    log(f"found {len(addons)} addon(s) in {SRC}")
-    if addons:
-        os.makedirs(dest, exist_ok=True)
-        log(f"created/ensured {dest}")
-        for f in addons:
-            target = os.path.join(dest, os.path.basename(f))
-            log(f"copy {f} -> {target}")
-            shutil.copyfile(f, target)   # ESP is FAT: geen rechten kopiëren
-        log(f"copied {len(addons)} addon(s)")
+    # We voegen in dit onderdeel de module toe
+    if cmd == "add":
+        addons = sorted(glob.glob(os.path.join(SRC, "*.addon.efi")))
+        log(f"found {len(addons)} addon(s) in {SRC}")
+        if addons:
+            os.makedirs(dest, exist_ok=True)
+            log(f"created/ensured {dest}")
+            for f in addons:
+                target = os.path.join(dest, os.path.basename(f))
+                log(f"copy {f} -> {target}")
+                shutil.copyfile(f, target)   # ESP is FAT: geen rechten kopiëren
+            log(f"copied {len(addons)} addon(s)")
+        else:
+            log("no addons to install")
+    # In dit onderdeel wordt het er uit gehaald.
+    elif cmd == "remove":
+        log(f"removing {dest}")
+        shutil.rmtree(dest, ignore_errors=True)
+        log("remove done")
+    # Commando stond is niet add alszowel remove.
     else:
-        log("no addons to install")
-# In dit onderdeel wordt het er uit gehaald.
-elif cmd == "remove":
-    log(f"removing {dest}")
-    shutil.rmtree(dest, ignore_errors=True)
-    log("remove done")
-# Commando stond is niet add alszowel remove.
-else:
-    log(f"unknown command {cmd!r}, ignoring")
+        log(f"unknown command {cmd!r}, ignoring")
 
-# Sluit programma af.
-log("Program Finished.")
-sys.exit(0)
+    # Sluit programma af.
+    log("Program Finished.")
+    sys.exit(0)
+except Exception:
+    traceback.print_exc(file=sys.stderr)
+    raise
