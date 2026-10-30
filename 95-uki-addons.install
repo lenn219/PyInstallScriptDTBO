@@ -3,8 +3,9 @@
 # Kopieert /etc/uki-addons/*.addon.efi naast elke UKI.
 import glob, os, shutil, sys
 
-# 
-SRC = "/etc/uki-addons"
+# https://uapi-group.org/specifications/specs/unified_kernel_image/
+# The location is definid in this spec.
+SRC = "/usr/lib/modules/uki.extra.d"
 
 def log(msg: str):
     if os.environ.get("KERNEL_INSTALL_VERBOSE", "0") not in ("", "0"):
