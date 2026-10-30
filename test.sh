@@ -8,7 +8,9 @@ ukify build --output=/tmp/dummy.addon.efi
 
 KVER=$(uname -r)
 
-KERNEL_IMAGE="/usr/lib/modules/${KVER}"
+# KERNEL_IMAGE="/usr/lib/modules/${KVER}"
+KERNEL_IMAGE="/usr/lib/modules/${KVER}/vmlinuz"
+
 SRC_DIR="${KERNEL_IMAGE}.extra.optional.d"
 
 # plaats de dummy in de locatie
