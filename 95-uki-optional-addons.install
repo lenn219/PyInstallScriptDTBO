@@ -107,7 +107,7 @@ def do_remove(kver: str) -> None:
     # Alleen de map verwijderen als die nu leeg is
     try:
         dest.rmdir()
-        logger.error(f"lege map verwijderd: {dest}")
+        logger.debug(f"lege map verwijderd: {dest}")
     except OSError:
         logger.exception(f"Nog bestanden aanwezig na het verwijderen?")
         pass
