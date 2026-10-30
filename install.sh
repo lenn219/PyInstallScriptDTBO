@@ -6,9 +6,7 @@ set -x          # optioneel: debug (print elke command)
 # this Script is used to install the 95-uki-addons.install to the right folder.
 
 # install is simply a copy but allows me to change attributes.
-install -m 755 95-uki-addons.install /etc/kernel/install.d/
+install -m 755 95-uki-optional-addons.install /etc/kernel/install.d/
 
-# maak de folder aan als het er nog niet is
-sudo mkdir -p /usr/lib/modules/uki.extra.d
 
 echo layout=uki | tee -a /etc/kernel/install.conf > /dev/null
