@@ -8,5 +8,7 @@ set -x          # optioneel: debug (print elke command)
 # install is simply a copy but allows me to change attributes.
 install -m 755 95-uki-optional-addons.install /etc/kernel/install.d/
 
-
-echo layout=uki | tee -a /etc/kernel/install.conf > /dev/null
+# layout=uki toevoegen als die er nog niet is
+if ! grep -q '^layout=' /etc/kernel/install.conf 2>/dev/null; then
+    cat etc/kernel/install.conf | tee -a /etc/kernel/install.conf > /dev/null
+fi
