@@ -1,7 +1,7 @@
 #!/usr/bin/sh
 # dit moet als root gedraaid worden.
 # Dit is om te voorkomen dat als er iets faalt dat de script door gaat.
-set -euo pipefail
+set -euo 
 set -x          # optioneel: debug (print elke command)
 
 ukify build --output=/tmp/dummy.addon.efi
