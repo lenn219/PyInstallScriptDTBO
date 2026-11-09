@@ -1,1 +1,6 @@
 #!/usr/bin/env sh
+
+set -euo pipefail
+set -x          # optioneel: debug (print elke command)
+
+echo "Is this working"
