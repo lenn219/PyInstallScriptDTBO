@@ -1,6 +1,16 @@
 #!/usr/bin/env sh
 
-set -euo pipefail
-set -x          # optioneel: debug (print elke command)
+set -euo
+set -x          # optioneel: debug 
 
 echo "Is this working"
+
+readonly LIST_FILE="/etc/kernel/uki-optional-addons"
+
+# VERBOSE = os.environ.get("KERNEL_INSTALL_VERBOSE", "0") not in ("", "0")
+
+VERBOSE=1
+
+if [ "" = "" ]; then
+    logger -s -t myscript -p user.info "Failed to read config"
+fi
