@@ -14,3 +14,5 @@ VERBOSE=1
 if [ "" = "" ]; then
     logger -s -t myscript -p user.info "Failed to read config"
 fi
+
+logger -s -t myscript -p user.info "Failed to read config"
