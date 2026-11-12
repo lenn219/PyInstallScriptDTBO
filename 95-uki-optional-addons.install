@@ -57,6 +57,7 @@ fi
 # done < "$LIST_FILE"
 while read -r raw || [ -n "$raw" ]; do
     # Strip comment and surrounding whitespace
+    # I got this from an AI i am not a 100% sure that its right
     name=$(printf '%s\n' "$raw" | sed 's/#.*//' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
     [ -z "$name" ] && continue
 

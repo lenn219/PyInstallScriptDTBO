@@ -25,4 +25,4 @@ echo "dummy.addon.efi" >> /etc/kernel/uki-optional-addons
 echo "ontbreekt.addon.efi" >> /etc/kernel/uki-optional-addons
 
 
-kernel-install add
+kernel-install add -v
