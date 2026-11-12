@@ -1,5 +1,23 @@
 # PyInstallScriptDTBO
 
+## How does it work
+
+This plugin gets trigger by the kernel install and then we pick it up from there.
+
+On `kernel-install add` it:
+
+1. Checks that `KERNEL_INSTALL_LAYOUT=uki`
+2. Reads the list of desired add-ons from `/etc/kernel/uki-optional-addons`
+3. Copies each listed `.addon.efi` from  
+   `/usr/lib/modules/<kernel>/vmlinuz.extra.optional.d/`  
+   into  
+   `$BOOT/EFI/Linux/<entry-token>-<kernel>.efi.extra.d/`
+
+`systemd-stub` then loads those files at boot. **This does not run at boot time only when kernel-install add is run**
+
+The plugin does nothing if the layout is not `uki` or if the list file is missing/empty.
+
+
 ## Install script
 ```sh
 sudo install.sh
