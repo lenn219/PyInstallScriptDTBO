@@ -4,7 +4,6 @@
 set -euo 
 set -x          # optioneel: debug (print elke command)
 
-# shellcheck 95-uki-optional-addons.install
 
 rm /tmp/dummy.addon.efi
 
