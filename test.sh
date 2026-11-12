@@ -1,8 +1,12 @@
-#!/usr/bin/sh
+#!/usr/bin/env sh
 # dit moet als root gedraaid worden.
 # Dit is om te voorkomen dat als er iets faalt dat de script door gaat.
 set -euo 
 set -x          # optioneel: debug (print elke command)
+
+# shellcheck 95-uki-optional-addons.install
+
+rm /tmp/dummy.addon.efi
 
 ukify build --output=/tmp/dummy.addon.efi
 

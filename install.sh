@@ -1,4 +1,4 @@
-#!/usr/bin/sh
+#!/usr/bin/env sh
 # Dit is om te voorkomen dat als er iets faalt dat de script door gaat.
 set -euo 
 set -x          # optioneel: debug (print elke command)

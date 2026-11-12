@@ -1,18 +1,159 @@
 #!/usr/bin/env sh
 
-set -euo
-set -x          # optioneel: debug 
+set -u
 
-echo "Is this working"
+LIST_FILE="/etc/kernel/uki-optional-addons"
 
-readonly LIST_FILE="/etc/kernel/uki-optional-addons"
-
-# VERBOSE = os.environ.get("KERNEL_INSTALL_VERBOSE", "0") not in ("", "0")
-
-VERBOSE=1
-
-if [ "" = "" ]; then
-    logger -s -t myscript -p user.info "Failed to read config"
+# Verbose when kernel-install was invoked with -v
+# (it exports KERNEL_INSTALL_VERBOSE=1 for plugins)
+VERBOSE=0
+if [ "${KERNEL_INSTALL_VERBOSE:-0}" = "1" ];
+then
+    VERBOSE=1;
 fi
 
-logger -s -t myscript -p user.info "Failed to read config"
+if [ "${KERNEL_INSTALL_LAYOUT:-}" != "uki" ]; then
+    [ "$VERBOSE" = 1 ] && echo "DEBUG: layout is not uki, skipping" >&2
+    exit 0
+fi
+
+if [ "$#" -lt 2 ]; then
+    echo "ERROR: not enough arguments" >&2
+    exit 0
+fi
+
+CMD="$1"
+KVER="$2"
+
+BOOT_ROOT="${KERNEL_INSTALL_BOOT_ROOT:-}"
+ENTRY_TOKEN="${KERNEL_INSTALL_ENTRY_TOKEN:-}"
+
+if [ -z "$BOOT_ROOT" ] || [ -z "$ENTRY_TOKEN" ]; then
+    echo "ERROR: KERNEL_INSTALL_BOOT_ROOT or KERNEL_INSTALL_ENTRY_TOKEN missing" >&2
+    exit 0
+fi
+
+ENTRY_NAME="${KERNEL_INSTALL_ENTRY_NAME:-${ENTRY_TOKEN}-${KVER}}"
+DEST_DIR="${BOOT_ROOT}/EFI/Linux/${ENTRY_NAME}.efi.extra.d"
+
+# Read and validate the optional-addons list
+
+TMP_LIST="$(mktemp)" || {
+    echo "ERROR: cannot create temporary list file" >&2
+    exit 0
+}
+
+# Clean up on exit
+# So we dont forget :)
+trap 'rm -f "$TMP_LIST"' EXIT
+
+if [ ! -f "$LIST_FILE" ]; then
+    [ "$VERBOSE" = 1 ] && echo "DEBUG: $LIST_FILE does not exist, nothing to do" >&2
+    exit 0
+fi
+
+# Input is at the bodem of this while loop
+# IDK if this is the best way its just the way i did it.
+# done < "$LIST_FILE"
+while read -r raw || [ -n "$raw" ]; do
+    # Strip comment and surrounding whitespace
+    name=$(printf '%s\n' "$raw" | sed 's/#.*//' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    [ -z "$name" ] && continue
+
+    # Reject path components and special names
+    # This is done because i do this
+    # src_file="${SRC_DIR}/${name}"
+    # target="${DEST_DIR}/${name}"
+    # Later in the Code.
+    case "$name" in
+        */*|*'\\'*|'.'|'..')
+            echo "ERROR: invalid name '$name' in $LIST_FILE, skipped" >&2
+            continue
+            ;;
+    esac
+
+    # Put it into the TMP_LIST
+    printf '%s\n' "$name" >> "$TMP_LIST"
+done < "$LIST_FILE"
+
+# If the validated list is empty, nothing to do
+if [ ! -s "$TMP_LIST" ]; then
+    [ "$VERBOSE" = 1 ] && echo "DEBUG: no valid addon names in $LIST_FILE" >&2
+    exit 0
+fi
+
+# Handle "add"
+if [ "$CMD" = "add" ]; then
+    if [ "$#" -lt 4 ]; then
+        echo "ERROR: add command missing kernel image argument" >&2
+        exit 0
+    fi
+
+    KERNEL_IMAGE="$4"
+    SRC_DIR="${KERNEL_IMAGE}.extra.optional.d"
+
+    if [ ! -d "$SRC_DIR" ]; then
+        echo "ERROR: source directory $SRC_DIR does not exist for kernel $KVER" >&2
+        exit 0
+    fi
+
+    # Create destination (parents)
+    # This is done because i was having problems that sometimes the script would fail if i didn't do this.
+    mkdir -p "$DEST_DIR" || {
+        echo "ERROR: cannot create $DEST_DIR" >&2
+        exit 0
+    }
+
+    while read -r name; do
+        [ -z "$name" ] && continue
+        src_file="${SRC_DIR}/${name}"
+        target="${DEST_DIR}/${name}"
+
+        if [ ! -f "$src_file" ]; then
+            echo "ERROR: '$name' is listed in $LIST_FILE but missing in $SRC_DIR" >&2
+            continue
+        fi
+
+        [ "$VERBOSE" = 1 ] && echo "DEBUG: $src_file -> $target" >&2
+
+        # ESP is FAT – plain copy is sufficient (no metadata)
+        if ! cp -f "$src_file" "$target"; then
+            echo "ERROR: failed to copy $src_file to $target" >&2
+        fi
+    done < "$TMP_LIST"
+
+    exit 0
+fi
+
+# Handle "remove"
+if [ "$CMD" = "remove" ]; then
+    if [ ! -d "$DEST_DIR" ]; then
+        [ "$VERBOSE" = 1 ] && echo "DEBUG: $DEST_DIR does not exist, nothing to remove" >&2
+        exit 0
+    fi
+
+    while read -r name; do
+        [ -z "$name" ] && continue
+        target="${DEST_DIR}/${name}"
+
+        if [ -f "$target" ]; then
+            [ "$VERBOSE" = 1 ] && echo "DEBUG: removing $target" >&2
+            if ! rm -f "$target"; then
+                echo "ERROR: failed to remove $target" >&2
+            fi
+        fi
+    done < "$TMP_LIST"
+
+    # Remove the directory only if it is now empty
+    if rmdir "$DEST_DIR" 2>/dev/null; then
+        [ "$VERBOSE" = 1 ] && echo "DEBUG: removed empty directory $DEST_DIR" >&2
+    else
+        [ "$VERBOSE" = 1 ] && echo "DEBUG: $DEST_DIR not empty after removals (or removal failed)" >&2
+    fi
+
+    exit 0
+fi
+
+# Unknown command
+[ "$VERBOSE" = 1 ] && echo "DEBUG: unknown command '$CMD', skipping" >&2
+exit 0
