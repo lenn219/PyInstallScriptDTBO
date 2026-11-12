@@ -1,6 +1,6 @@
-#!/usr/bin/sh
+#!/usr/bin/env sh
 # Dit is om te voorkomen dat als er iets faalt dat de script door gaat.
-set -euo pipefail
+set -euo 
 set -x          # optioneel: debug (print elke command)
 
 # this Script is used to install the 95-uki-addons.install to the right folder.
