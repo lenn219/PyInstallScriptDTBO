@@ -66,6 +66,7 @@ while read -r raw || [ -n "$raw" ]; do
     # src_file="${SRC_DIR}/${name}"
     # target="${DEST_DIR}/${name}"
     # Later in the Code.
+    # shellcheck disable=SC1003
     case "$name" in
         */*|*'\\'*|'.'|'..')
             echo "ERROR: invalid name '$name' in $LIST_FILE, skipped" >&2
