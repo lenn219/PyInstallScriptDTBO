@@ -16,3 +16,6 @@ jobs:
 
       - name: Run ShellCheck
         run: find . -type f -name "*.sh" -exec shellcheck {} +
+
+      - name: Run ShellCheck Install
+        run: find . -type f -name "*.install" -exec shellcheck {} +
